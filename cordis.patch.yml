@@ -1,0 +1,3 @@
+- insert:
+    - id: openai-responses-web-search
+      name: dsh-openai-responses-web-search
