@@ -1,6 +1,6 @@
 {
   "name": "dsh-openai-responses-web-search",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Configurable OpenAI Responses API provider for DSH web search.",
   "type": "module",
   "main": "lib/index.js",
@@ -35,6 +35,6 @@
     "url": "https://github.com/vb2250158/dsh-openai-responses-web-search/issues"
   },
   "peerDependencies": {
-    "@deepseek-ai/schemastery": "^3.18.1"
+    "@deepseek-ai/schemastery": ">=3.18.5-alpha.1 <4.0.0"
   }
 }
