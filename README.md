@@ -1,5 +1,7 @@
 # dsh-openai-responses-web-search
 
+This release requires DSH 0.2.1-alpha.1 or a compatible 0.2 release. See [compatibility details](docs/dsh-0.2-compatibility.md).
+
 通过兼容 OpenAI Responses API 的服务为 DSH 提供联网搜索。
 
 ## 安装
