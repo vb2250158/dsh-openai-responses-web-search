@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Responses 联网搜索",
+    "description": "通过可配置的 OpenAI Responses API 执行联网搜索。"
+  }
+}

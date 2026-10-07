@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Responses web search",
+    "description": "Search the web through a configurable OpenAI Responses API provider."
+  }
+}
