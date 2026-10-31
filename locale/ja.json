@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Responses ウェブ検索",
+    "description": "設定可能な OpenAI Responses API プロバイダー経由でウェブを検索します。"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Búsqueda web con Responses",
+    "description": "Busca en la web mediante un proveedor configurable de la API OpenAI Responses."
+  }
+}
