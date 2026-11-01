@@ -42,6 +42,54 @@ test('a missing native service fails explicitly without switching to another acc
   await assert.rejects(providers.get('model-native').search({ query: 'fixture' }), { code: 'WEB_PROVIDER_CONFIGURED_MISSING' })
 })
 
+test('a failed gateway tries configured subscriptions in order and keeps the successful result', async () => {
+  const previousFetch = globalThis.fetch
+  globalThis.fetch = async () => new Response('', { status: 502 })
+  const providers = new Map()
+  const calls = []
+  try {
+    apply({ web: { registerSearchProvider(p) { providers.set(p.id, p) } }, get(name) {
+      if (name === 'agents') return { currentInitiator: () => ({ session: { requestContext: () => ({ provider: 'opencode', model: 'deepseek-v4' }) } }) }
+      if (name === 'credentials') return { resolve: async () => ({ value: 'fixture' }) }
+      if (name === 'subscriptionWebSearch') return { async search(provider, model) {
+        calls.push([provider, model])
+        if (provider === 'codex') throw Object.assign(new Error('unavailable'), { code: 'WEB_PROVIDER_ERROR' })
+        return { sources: [{ url: 'https://example.test' }], truncated: false }
+      } }
+    } }, { baseURL: 'https://api.example.test/v1', fallbackSearches: [{ provider: 'codex', model: 'codex-model' }, { provider: 'grok', model: 'grok-model' }] })
+    assert.deepEqual((await providers.get('model-native').search({ query: 'fixture' })).sources, [{ url: 'https://example.test' }])
+    assert.deepEqual(calls, [['codex', 'codex-model'], ['grok', 'grok-model']])
+  } finally { globalThis.fetch = previousFetch }
+})
+
+test('cancellation and unexpected defects do not trigger fallback', async () => {
+  for (const error of [Object.assign(new Error('cancelled'), { code: 'WEB_ABORTED' }), new TypeError('bug')]) {
+    const providers = new Map()
+    let calls = 0
+    apply({ web: { registerSearchProvider(p) { providers.set(p.id, p) } }, get(name) {
+      if (name === 'agents') return { currentInitiator: () => ({ session: { requestContext: () => ({ provider: 'grok', model: 'grok-model' }) } }) }
+      if (name === 'subscriptionWebSearch') return { search: async () => { calls++; throw error } }
+    } }, { baseURL: 'https://api.example.test', fallbackSearches: [{ provider: 'codex', model: 'codex-model' }] })
+    await assert.rejects(providers.get('model-native').search({ query: 'fixture' }), error)
+    assert.equal(calls, 1)
+  }
+})
+
+test('native failure falls back once per provider and reports all failures', async () => {
+  const providers = new Map()
+  const calls = []
+  apply({ web: { registerSearchProvider(p) { providers.set(p.id, p) } }, get(name) {
+    if (name === 'agents') return { currentInitiator: () => ({ session: { requestContext: () => ({ provider: 'grok', model: 'original' }) } }) }
+    if (name === 'subscriptionWebSearch') return { search: async (provider, model) => {
+      calls.push([provider, model])
+      throw Object.assign(new Error('unavailable'), { code: 'WEB_PROVIDER_ERROR' })
+    } }
+  } }, { baseURL: 'https://api.example.test', fallbackSearches: [{ provider: 'grok', model: 'other' }, { provider: 'codex', model: 'codex-model' }] })
+  await assert.rejects(providers.get('model-native').search({ query: 'fixture' }), error =>
+    error.code === 'WEB_PROVIDER_ERROR' && error.cause instanceof AggregateError && error.cause.errors.length === 2)
+  assert.deepEqual(calls, [['grok', 'original'], ['codex', 'codex-model']])
+})
+
 test('validates and normalizes deployment configuration', () => {
   assert.deepEqual(resolveConfig({ baseURL: 'https://api.example.test/v1/' }), {
     baseURL: 'https://api.example.test/v1',

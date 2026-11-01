@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Allow explicitly configured subscription search fallbacks after a provider failure; preserve cancellation and report exhausted attempts.
+
 ## 0.1.5 (2026-10-11)
 
 - Add the `model-native` backend: route Codex, Grok, and Claude subscription requests to their own native web search service; retain configured Responses search for other routes. Preserve HTTP status and service identity in gateway errors, and require the hosted search tool.
