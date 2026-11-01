@@ -90,6 +90,42 @@ test('native failure falls back once per provider and reports all failures', asy
   assert.deepEqual(calls, [['grok', 'original'], ['codex', 'codex-model']])
 })
 
+test('a timed-out search gives the next provider its own budget', async () => {
+  const providers = new Map()
+  const calls = []
+  apply({ web: { registerSearchProvider(p) { providers.set(p.id, p) } }, get(name) {
+    if (name === 'agents') return { currentInitiator: () => ({ session: { requestContext: () => ({ provider: 'grok', model: 'grok-model' }) } }) }
+    if (name === 'subscriptionWebSearch') return { search: async (provider, _model, _request, signal) => {
+      calls.push(provider)
+      if (provider === 'grok') return await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, 1000)
+        signal.addEventListener('abort', () => { clearTimeout(timer); reject(Object.assign(new Error('aborted'), { code: 'WEB_ABORTED' })) }, { once: true })
+      })
+      assert.equal(signal.aborted, false)
+      return { sources: [{ url: 'https://example.test' }], truncated: false }
+    } }
+  } }, { baseURL: 'https://api.example.test', attemptTimeoutMs: 10, fallbackSearches: [{ provider: 'codex', model: 'codex-model' }] })
+  assert.equal((await providers.get('model-native').search({ query: 'fixture' })).sources.length, 1)
+  assert.deepEqual(calls, ['grok', 'codex'])
+})
+
+test('outer cancellation stops a pending attempt without invoking fallback', async () => {
+  const providers = new Map()
+  let calls = 0
+  const controller = new AbortController()
+  apply({ web: { registerSearchProvider(p) { providers.set(p.id, p) } }, get(name) {
+    if (name === 'agents') return { currentInitiator: () => ({ session: { requestContext: () => ({ provider: 'grok', model: 'grok-model' }) } }) }
+    if (name === 'subscriptionWebSearch') return { search: async (_provider, _model, _request, signal) => {
+      calls++
+      return await new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true }))
+    } }
+  } }, { baseURL: 'https://api.example.test', fallbackSearches: [{ provider: 'codex', model: 'codex-model' }] })
+  const pending = providers.get('model-native').search({ query: 'fixture' }, controller.signal)
+  controller.abort()
+  await assert.rejects(pending, { code: 'WEB_ABORTED' })
+  assert.equal(calls, 1)
+})
+
 test('validates and normalizes deployment configuration', () => {
   assert.deepEqual(resolveConfig({ baseURL: 'https://api.example.test/v1/' }), {
     baseURL: 'https://api.example.test/v1',

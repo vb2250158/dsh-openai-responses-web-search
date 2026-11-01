@@ -40,7 +40,7 @@ pnpm dsh plugin --profile web add github:vb2250158/dsh-openai-responses-web-sear
         model: your-supported-grok-model
 ```
 
-默认备用列表为空。首选服务返回结构化搜索错误时，依次尝试配置的备用服务，同一提供方只调用一次；取消和未分类程序错误立即停止。所有尝试失败时报告失败，并保留各次错误作为 cause。启用备用服务会将相同查询发送给备用提供方；超时预算仍由工具层控制，先前耗尽预算时无法继续回退。
+默认备用列表为空。首选服务返回结构化搜索错误时，依次尝试配置的备用服务，同一提供方只调用一次；取消和未分类程序错误立即停止。每次尝试的协作式超时由 `attemptTimeoutMs` 控制，默认 25000 毫秒；工具层的总超时仍会取消整次搜索。所有尝试失败时报告失败，并保留各次错误作为 cause。启用备用服务会将相同查询发送给备用提供方。
 
 HTTP 错误保留服务地址与状态码；502 提示检查搜索网关的上游连通性及 `web_search` 支持。原生 Grok 与 Claude 协议分别见 [xAI Web Search](https://docs.x.ai/developers/tools/web-search) 和 [Claude Web Search](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool)。源码和公开示例不保存真实地址或凭据。
 

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Allow explicitly configured subscription search fallbacks after a provider failure; preserve cancellation and report exhausted attempts.
+- Allow explicitly configured subscription search fallbacks after a provider failure; bound each attempt, preserve cancellation, and report exhausted attempts.
 
 ## 0.1.5 (2026-10-11)
 
